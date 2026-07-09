@@ -15,6 +15,7 @@ const CLI_FILE = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(CLI_FILE), "../../..");
 const SAU_BIN = resolveSauBin();
 const DEFAULT_TIMEZONE = process.env.AUTOPOST_TIMEZONE || "Asia/Shanghai";
+const DEFAULT_RUN_DIR = process.env.AUTOPOST_RUN_DIR || path.resolve(process.cwd(), ".autopost/runs");
 const PLATFORM_SCHEDULE_RULES = {
   douyin: {
     weekday: ["12:20", "19:30", "21:10"],
@@ -80,10 +81,11 @@ function usage(exitCode = 0) {
         schedule: "Analyze and print recommended publish times for a post manifest.",
         plan: "Validate a post manifest and print sau commands without publishing.",
         publish: "Run sau upload-video commands from a post manifest.",
-        status: "Placeholder for future run logs.",
+        status: "Read a saved publish run log.",
       },
       environment: {
         AUTOPOST_SAU_BIN: "Override the sau executable path.",
+        AUTOPOST_RUN_DIR: "Directory for publish run logs. Default: .autopost/runs.",
         AUTOPOST_TIMEZONE: "Timezone used for schedule:auto. Default: Asia/Shanghai.",
       },
     },
@@ -538,6 +540,44 @@ function runSauCommand(command, passthrough = false) {
   };
 }
 
+function createRunId() {
+  const stamp = new Date().toISOString()
+    .replaceAll("-", "")
+    .replaceAll(":", "")
+    .replace(/\.\d{3}Z$/, "Z");
+  const suffix = Math.random().toString(36).slice(2, 8);
+  return `${stamp}-${suffix}`;
+}
+
+function runLogPath(runId) {
+  return path.resolve(DEFAULT_RUN_DIR, `${runId}.json`);
+}
+
+function saveRunLog(runLog) {
+  fs.mkdirSync(DEFAULT_RUN_DIR, { recursive: true });
+  const filePath = runLogPath(runLog.run_id);
+  fs.writeFileSync(filePath, `${JSON.stringify(runLog, null, 2)}\n`, "utf8");
+  return filePath;
+}
+
+function readRunLog(runIdOrPath) {
+  const candidates = [];
+  if (fs.existsSync(path.resolve(process.cwd(), runIdOrPath))) {
+    candidates.push(path.resolve(process.cwd(), runIdOrPath));
+  }
+  candidates.push(runLogPath(runIdOrPath));
+
+  for (const candidate of candidates) {
+    if (!fs.existsSync(candidate)) continue;
+    return {
+      path: candidate,
+      data: JSON.parse(fs.readFileSync(candidate, "utf8")),
+    };
+  }
+
+  return null;
+}
+
 function shellQuote(value) {
   const text = String(value);
   if (/^[A-Za-z0-9_./:=,@+-]+$/.test(text)) return text;
@@ -572,6 +612,7 @@ function doctor() {
       sau: sauInstalled,
       sau_bin: SAU_BIN,
       sau_help: sauHelp ? sauHelp.stdout.split("\n")[0] : null,
+      run_dir: DEFAULT_RUN_DIR,
       schedule_timezone: DEFAULT_TIMEZONE,
     },
     install_hint: [
@@ -795,26 +836,39 @@ function publish(filePath) {
   const { absolutePath, data } = readYamlFile(filePath);
   const result = validatePostManifest(data, path.dirname(absolutePath));
   if (result.errors.length > 0) {
-    printJson({
+    const runLog = {
       ok: false,
       command: "publish",
+      run_id: createRunId(),
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
       manifest: absolutePath,
       warnings: result.warnings,
       errors: result.errors,
-    }, 1);
+      results: [],
+    };
+    const run_log = saveRunLog(runLog);
+    printJson({ ...runLog, run_log }, 1);
     return;
   }
 
   if (!commandExists(SAU_BIN)) {
-    printJson({
+    const runLog = {
       ok: false,
       command: "publish",
+      run_id: createRunId(),
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
       manifest: absolutePath,
       errors: [`${SAU_BIN} is not installed or not on PATH. Run autopost doctor for setup hints.`],
-    }, 1);
+      results: [],
+    };
+    const run_log = saveRunLog(runLog);
+    printJson({ ...runLog, run_log }, 1);
     return;
   }
 
+  const started_at = new Date().toISOString();
   const results = [];
   for (const item of result.plan) {
     const upload = runSauCommand(item.command);
@@ -825,22 +879,39 @@ function publish(filePath) {
     });
   }
 
-  printJson({
+  const runLog = {
     ok: results.every((entry) => entry.ok),
     command: "publish",
+    run_id: createRunId(),
+    started_at,
+    finished_at: new Date().toISOString(),
     manifest: absolutePath,
     warnings: result.warnings,
     results,
-  }, results.every((entry) => entry.ok) ? 0 : 1);
+  };
+  const run_log = saveRunLog(runLog);
+  printJson({ ...runLog, run_log }, runLog.ok ? 0 : 1);
 }
 
 function status(runId) {
+  const runLog = readRunLog(runId);
+  if (!runLog) {
+    printJson({
+      ok: false,
+      command: "status",
+      run_id: runId,
+      run_dir: DEFAULT_RUN_DIR,
+      error: "Run log not found.",
+    }, 1);
+    return;
+  }
+
   printJson({
-    ok: false,
+    ok: true,
     command: "status",
-    run_id: runId,
-    message: "Run status storage is not implemented yet. Current publish results are printed synchronously.",
-  }, 1);
+    run_log: runLog.path,
+    run: runLog.data,
+  });
 }
 
 const args = parseArgs(process.argv.slice(2));

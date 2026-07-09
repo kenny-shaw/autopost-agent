@@ -19,6 +19,7 @@ Work in progress, but the local CLI now has the first real execution path:
 - `plan` validates a post manifest and prints the exact `sau` upload commands.
 - `publish` runs `sau <platform> upload-video` sequentially and prints JSON
   results.
+- `status` reads saved publish run logs from `.autopost/runs`.
 - `schedule: auto` chooses the next recommended publish window per platform and
   passes it to `sau --schedule`.
 
@@ -41,6 +42,7 @@ Future public usage:
 npx autopost plan post.yaml
 npx autopost check accounts.yaml
 npx autopost publish post.yaml
+npx autopost status <run-id>
 ```
 
 See [docs/local-setup.md](docs/local-setup.md) for the `social-auto-upload`

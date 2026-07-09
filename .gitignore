@@ -7,4 +7,4 @@ build/
 !.env.example
 coverage/
 *.log
-
+.autopost/

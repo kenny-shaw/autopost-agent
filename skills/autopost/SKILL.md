@@ -41,6 +41,8 @@ autopost status <run-id>
 7. Run `autopost check <post.yaml>` to verify local login state.
 8. Only run `autopost publish <post.yaml>` when the user explicitly asks to
    publish.
+9. After publishing, preserve the returned `run_id` and use
+   `autopost status <run-id>` if the user asks for the result again.
 
 ## Safety
 

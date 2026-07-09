@@ -66,7 +66,18 @@ npm run autopost -- publish examples/post.yaml
 ```
 
 `plan` never publishes. `publish` runs platform commands sequentially and prints
-a JSON result for each platform.
+a JSON result for each platform. Publish runs are saved under `.autopost/runs`
+by default:
+
+```bash
+npm run autopost -- status <run-id>
+```
+
+Override the log directory when needed:
+
+```bash
+AUTOPOST_RUN_DIR=/tmp/autopost-runs npm run autopost -- publish /tmp/autopost-scheduled.yaml
+```
 
 ## Auto Schedule
 
