@@ -11,13 +11,14 @@ needed.
 
 ## Current Status
 
-The current CLI is a scaffold. Prefer `plan` for dry-run validation. Do not
-claim real publishing support until `autopost publish` is connected to the
-private AutoPost orchestration layer.
+The CLI wraps the `sau` command from `social-auto-upload`. Use `doctor` first
+to check whether `sau`, `uv`, and the expected Python runtime are available.
 
 ## Commands
 
 ```bash
+autopost doctor
+autopost login <accounts-or-post.yaml>
 autopost plan <post.yaml>
 autopost check <accounts.yaml>
 autopost publish <post.yaml>
@@ -27,10 +28,11 @@ autopost status <run-id>
 ## Workflow
 
 1. Ask for or locate a post manifest.
-2. Run `autopost plan <post.yaml>` before any publishing attempt.
-3. Confirm missing files, accounts, or platform-specific fields.
-4. Only run `autopost publish <post.yaml>` when the user explicitly asks to
-   publish and the CLI supports publishing.
+2. Run `autopost doctor` if this is the first publishing task in the session.
+3. Run `autopost plan <post.yaml>` before any publishing attempt.
+4. Run `autopost check <post.yaml>` to verify local login state.
+5. Only run `autopost publish <post.yaml>` when the user explicitly asks to
+   publish.
 
 ## Safety
 
@@ -38,4 +40,5 @@ autopost status <run-id>
 - Treat cloud account custody as unsupported unless the user provides a
   documented AutoPost deployment that supports it.
 - Avoid promises about unsupported platforms.
-
+- If `sau` is missing, tell the user to install `social-auto-upload` locally;
+  do not invent a fake upload result.

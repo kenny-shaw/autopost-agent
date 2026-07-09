@@ -1,0 +1,14 @@
+accounts:
+  douyin:
+    main:
+      label: "Douyin main account"
+  xiaohongshu:
+    main:
+      label: "Xiaohongshu main account"
+  kuaishou:
+    main:
+      label: "Kuaishou main account"
+  bilibili:
+    main:
+      label: "Bilibili main account"
+

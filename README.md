@@ -10,15 +10,24 @@ implementation details, and account custody logic belong in the private
 
 ## Status
 
-Work in progress. The current CLI is a scaffold that supports manifest parsing
-and dry-run planning. Real platform publishing will be connected after the
-private AutoPost orchestration layer is ready.
+Work in progress, but the local CLI now has the first real execution path:
+
+- `doctor` checks local prerequisites.
+- `login` calls `sau <platform> login`.
+- `check` calls `sau <platform> check`.
+- `plan` validates a post manifest and prints the exact `sau` upload commands.
+- `publish` runs `sau <platform> upload-video` sequentially and prints JSON
+  results.
+
+The first stable platform scope is Douyin, Xiaohongshu, Kuaishou, and Bilibili.
+Tencent/WeChat Channels and YouTube are treated as experimental.
 
 ## Quick Start
 
 ```bash
 npm install
-npm run autopost -- plan examples/post.yaml
+npm run autopost -- doctor
+npm run autopost -- plan examples/post.yaml --allow-missing-files
 ```
 
 Future public usage:
@@ -29,3 +38,5 @@ npx autopost check accounts.yaml
 npx autopost publish post.yaml
 ```
 
+See [docs/local-setup.md](docs/local-setup.md) for the `social-auto-upload`
+setup and local login flow.

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "autopost": "node packages/cli/bin/autopost.js",
-    "check": "node packages/cli/bin/autopost.js plan examples/post.yaml"
+    "check": "node packages/cli/bin/autopost.js plan examples/post.yaml --allow-missing-files"
   },
   "engines": {
     "node": ">=18"
@@ -19,4 +19,3 @@
     "yaml": "^2.8.0"
   }
 }
-
