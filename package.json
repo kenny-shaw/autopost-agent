@@ -1,0 +1,22 @@
+{
+  "name": "autopost-agent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Agent-facing CLI and skill package for AutoPost.",
+  "type": "module",
+  "bin": {
+    "autopost": "packages/cli/bin/autopost.js"
+  },
+  "scripts": {
+    "autopost": "node packages/cli/bin/autopost.js",
+    "check": "node packages/cli/bin/autopost.js plan examples/post.yaml"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "yaml": "^2.8.0"
+  }
+}
+

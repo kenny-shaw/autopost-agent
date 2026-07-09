@@ -1,0 +1,18 @@
+title: "Demo title"
+description: "Demo description"
+tags:
+  - AI
+  - automation
+video: "./videos/demo.mp4"
+cover: "./covers/demo.jpg"
+platforms:
+  douyin:
+    account: "main"
+  xiaohongshu:
+    account: "main"
+  kuaishou:
+    account: "main"
+  bilibili:
+    account: "main"
+    tid: 249
+
