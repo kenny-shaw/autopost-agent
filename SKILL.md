@@ -34,9 +34,12 @@ autopost status <run-id>
    explicit time preference.
 4. Run `autopost schedule <post.yaml>` when the user wants the best time
    analysis separately from the upload command plan.
-5. Run `autopost plan <post.yaml>` before any publishing attempt.
-6. Run `autopost check <post.yaml>` to verify local login state.
-7. Only run `autopost publish <post.yaml>` when the user explicitly asks to
+5. Before publishing an auto-scheduled post, run
+   `autopost schedule <post.yaml> --write <scheduled-post.yaml>` and use the
+   written manifest for `plan` and `publish`.
+6. Run `autopost plan <post.yaml>` before any publishing attempt.
+7. Run `autopost check <post.yaml>` to verify local login state.
+8. Only run `autopost publish <post.yaml>` when the user explicitly asks to
    publish.
 
 ## Safety

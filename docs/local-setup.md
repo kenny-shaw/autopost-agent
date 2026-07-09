@@ -100,6 +100,17 @@ For deterministic checks, pass `--now`:
 npm run autopost -- schedule examples/post.yaml --now "2026-07-09 19:00"
 ```
 
+Lock the recommended times into a new manifest before publishing:
+
+```bash
+npm run autopost -- schedule examples/post.yaml --write /tmp/autopost-scheduled.yaml
+npm run autopost -- plan /tmp/autopost-scheduled.yaml
+npm run autopost -- publish /tmp/autopost-scheduled.yaml
+```
+
+This converts a shared `schedule: auto` into per-platform concrete schedules,
+so later `plan` and `publish` calls use the same times.
+
 Use an explicit manual schedule when you already know the time:
 
 ```yaml

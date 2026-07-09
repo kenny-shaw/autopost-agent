@@ -309,6 +309,10 @@ function scheduleOptionsFromCli(options = {}) {
   };
 }
 
+function clonePlain(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 function recommendSchedule(platform, options = {}) {
   const rule = PLATFORM_SCHEDULE_RULES[platform] || PLATFORM_SCHEDULE_RULES.douyin;
   const timeZone = options.timeZone || DEFAULT_TIMEZONE;
@@ -616,11 +620,18 @@ function schedule(filePath, options = {}) {
     ...scheduleOptionsFromCli(options),
   });
 
+  const writePath = options.values?.write || (options.flags?.has("in-place") ? absolutePath : null);
+  let written = null;
+  if (writePath && result.errors.length === 0) {
+    written = writeScheduledManifest(data, result, writePath, path.dirname(absolutePath));
+  }
+
   printJson({
     ok: result.errors.length === 0,
     command: "schedule",
     manifest: absolutePath,
     time_zone: scheduleOptionsFromCli(options).timeZone,
+    written,
     recommendations: result.plan.map((item) => ({
       platform: item.platform,
       account: item.account,
@@ -634,6 +645,67 @@ function schedule(filePath, options = {}) {
     warnings: result.warnings,
     errors: result.errors,
   }, result.errors.length === 0 ? 0 : 1);
+}
+
+function writeScheduledManifest(manifest, result, writePath, sourceDir) {
+  const scheduledManifest = clonePlain(manifest);
+  const absoluteWritePath = path.resolve(sourceDir, writePath);
+  const targetDir = path.dirname(absoluteWritePath);
+  if (!scheduledManifest.platforms || typeof scheduledManifest.platforms !== "object") {
+    scheduledManifest.platforms = {};
+  }
+
+  delete scheduledManifest.schedule;
+  rebaseMediaPaths(scheduledManifest, sourceDir, targetDir);
+  for (const item of result.plan) {
+    if (!item.schedule?.value) continue;
+    scheduledManifest.platforms[item.platform] = {
+      ...(scheduledManifest.platforms[item.platform] || {}),
+      schedule: item.schedule.value,
+    };
+  }
+
+  scheduledManifest.autopost = {
+    ...(scheduledManifest.autopost || {}),
+    schedule_generated_at: new Date().toISOString(),
+    schedule_time_zone: result.plan.find((item) => item.schedule?.time_zone)?.schedule.time_zone || DEFAULT_TIMEZONE,
+  };
+
+  fs.mkdirSync(path.dirname(absoluteWritePath), { recursive: true });
+  fs.writeFileSync(absoluteWritePath, YAML.stringify(scheduledManifest), "utf8");
+  return absoluteWritePath;
+}
+
+function rebaseMediaPaths(manifest, sourceDir, targetDir) {
+  if (path.resolve(sourceDir) === path.resolve(targetDir)) return;
+
+  for (const key of mediaPathKeys()) {
+    if (manifest[key]) manifest[key] = rebasePath(manifest[key], sourceDir);
+  }
+
+  for (const platformConfig of Object.values(manifest.platforms || {})) {
+    if (!platformConfig || typeof platformConfig !== "object") continue;
+    for (const key of mediaPathKeys()) {
+      if (platformConfig[key]) platformConfig[key] = rebasePath(platformConfig[key], sourceDir);
+    }
+  }
+}
+
+function mediaPathKeys() {
+  return [
+    "video",
+    "cover",
+    "thumbnail",
+    "thumbnailLandscape",
+    "thumbnail_landscape",
+    "thumbnailPortrait",
+    "thumbnail_portrait",
+  ];
+}
+
+function rebasePath(value, sourceDir) {
+  const rawValue = String(value);
+  return path.isAbsolute(rawValue) ? rawValue : path.resolve(sourceDir, rawValue);
 }
 
 function check(filePath) {

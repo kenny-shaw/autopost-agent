@@ -31,6 +31,7 @@ Tencent/WeChat Channels and YouTube are treated as experimental.
 npm install
 npm run autopost -- doctor
 npm run autopost -- schedule examples/post.yaml
+npm run autopost -- schedule examples/post.yaml --write /tmp/autopost-scheduled.yaml
 npm run autopost -- plan examples/post.yaml --allow-missing-files
 ```
 
