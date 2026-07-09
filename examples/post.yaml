@@ -5,6 +5,7 @@ tags:
   - automation
 video: "./videos/demo.mp4"
 cover: "./covers/demo.jpg"
+schedule: auto
 platforms:
   douyin:
     account: "main"
@@ -15,4 +16,3 @@ platforms:
   bilibili:
     account: "main"
     tid: 249
-

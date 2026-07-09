@@ -14,6 +14,39 @@ const SUPPORTED_PLATFORMS = new Set([...STABLE_PLATFORMS, ...EXPERIMENTAL_PLATFO
 const CLI_FILE = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(CLI_FILE), "../../..");
 const SAU_BIN = resolveSauBin();
+const DEFAULT_TIMEZONE = process.env.AUTOPOST_TIMEZONE || "Asia/Shanghai";
+const PLATFORM_SCHEDULE_RULES = {
+  douyin: {
+    weekday: ["12:20", "19:30", "21:10"],
+    weekend: ["10:30", "19:30", "21:00"],
+    offsetMinutes: 0,
+  },
+  xiaohongshu: {
+    weekday: ["12:40", "20:10", "22:00"],
+    weekend: ["11:00", "20:30", "22:10"],
+    offsetMinutes: 8,
+  },
+  kuaishou: {
+    weekday: ["12:10", "18:50", "20:40"],
+    weekend: ["10:20", "18:50", "20:30"],
+    offsetMinutes: 16,
+  },
+  bilibili: {
+    weekday: ["18:30", "20:00", "21:30"],
+    weekend: ["10:00", "14:30", "20:00"],
+    offsetMinutes: 24,
+  },
+  tencent: {
+    weekday: ["12:30", "19:40", "21:20"],
+    weekend: ["10:40", "19:40", "21:20"],
+    offsetMinutes: 32,
+  },
+  youtube: {
+    weekday: ["19:00", "21:00"],
+    weekend: ["09:30", "20:30"],
+    offsetMinutes: 40,
+  },
+};
 
 function resolveSauBin() {
   if (process.env.AUTOPOST_SAU_BIN) return process.env.AUTOPOST_SAU_BIN;
@@ -50,6 +83,7 @@ function usage(exitCode = 0) {
       },
       environment: {
         AUTOPOST_SAU_BIN: "Override the sau executable path.",
+        AUTOPOST_TIMEZONE: "Timezone used for schedule:auto. Default: Asia/Shanghai.",
       },
     },
     exitCode,
@@ -175,6 +209,129 @@ function mergePlatform(manifest, platformConfig) {
   };
 }
 
+function zonedParts(date = new Date(), timeZone = DEFAULT_TIMEZONE) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return {
+    year: Number(map.year),
+    month: Number(map.month),
+    day: Number(map.day),
+    hour: Number(map.hour),
+    minute: Number(map.minute),
+    second: Number(map.second),
+  };
+}
+
+function dayOfWeek(year, month, day) {
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+function addDays(localDate, days) {
+  const date = new Date(Date.UTC(localDate.year, localDate.month - 1, localDate.day + days));
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+  };
+}
+
+function addMinutesLocal(localDateTime, minutes) {
+  const date = new Date(Date.UTC(
+    localDateTime.year,
+    localDateTime.month - 1,
+    localDateTime.day,
+    localDateTime.hour,
+    localDateTime.minute + minutes,
+  ));
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+    hour: date.getUTCHours(),
+    minute: date.getUTCMinutes(),
+  };
+}
+
+function compareLocalDateTime(left, right) {
+  for (const field of ["year", "month", "day", "hour", "minute"]) {
+    if (left[field] > right[field]) return 1;
+    if (left[field] < right[field]) return -1;
+  }
+  return 0;
+}
+
+function parseTimeWindow(value) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value);
+  if (!match) throw new Error(`Invalid schedule window: ${value}`);
+  return {
+    hour: Number(match[1]),
+    minute: Number(match[2]),
+  };
+}
+
+function formatLocalDateTime(localDateTime) {
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${localDateTime.year}-${pad(localDateTime.month)}-${pad(localDateTime.day)} ${pad(localDateTime.hour)}:${pad(localDateTime.minute)}`;
+}
+
+function isAutoSchedule(value) {
+  return value === true || String(value || "").toLowerCase() === "auto";
+}
+
+function recommendSchedule(platform, options = {}) {
+  const rule = PLATFORM_SCHEDULE_RULES[platform] || PLATFORM_SCHEDULE_RULES.douyin;
+  const timeZone = options.timeZone || DEFAULT_TIMEZONE;
+  const now = zonedParts(new Date(), timeZone);
+  const earliest = addMinutesLocal(now, Number(options.minLeadMinutes || 30));
+
+  for (let dayOffset = 0; dayOffset < 14; dayOffset += 1) {
+    const date = addDays(now, dayOffset);
+    const weekday = dayOfWeek(date.year, date.month, date.day);
+    const windows = weekday === 0 || weekday === 6 ? rule.weekend : rule.weekday;
+
+    for (const window of windows) {
+      const time = parseTimeWindow(window);
+      const candidate = addMinutesLocal({ ...date, ...time }, rule.offsetMinutes || 0);
+      if (compareLocalDateTime(candidate, earliest) >= 0) {
+        return {
+          value: formatLocalDateTime(candidate),
+          source: "auto",
+          time_zone: timeZone,
+          reason: "Next recommended creator posting window with platform-specific staggering.",
+        };
+      }
+    }
+  }
+
+  const fallback = addMinutesLocal(earliest, rule.offsetMinutes || 0);
+  return {
+    value: formatLocalDateTime(fallback),
+    source: "auto",
+    time_zone: timeZone,
+    reason: "Fallback after no preferred posting window was available.",
+  };
+}
+
+function resolveSchedule(platform, rawSchedule, options = {}) {
+  if (!rawSchedule) return null;
+  if (isAutoSchedule(rawSchedule)) return recommendSchedule(platform, options);
+  return {
+    value: String(rawSchedule),
+    source: "manual",
+    time_zone: options.timeZone || DEFAULT_TIMEZONE,
+  };
+}
+
 function validatePostManifest(manifest, baseDir, options = {}) {
   const errors = [];
   const warnings = [];
@@ -217,6 +374,7 @@ function validatePostManifest(manifest, baseDir, options = {}) {
     }
 
     const merged = mergePlatform(manifest, config);
+    const schedule = resolveSchedule(platform, merged.schedule, options);
     if (!merged.account) errors.push(`Missing account for platform: ${platform}`);
     if (!merged.title) errors.push(`Missing title for platform: ${platform}`);
     if (platform === "bilibili" && !merged.tid) {
@@ -230,7 +388,8 @@ function validatePostManifest(manifest, baseDir, options = {}) {
       platform,
       account: merged.account || null,
       stable: STABLE_PLATFORMS.has(platform),
-      command: buildSauUploadCommand(platform, merged, baseDir),
+      schedule,
+      command: buildSauUploadCommand(platform, { ...merged, schedule: schedule?.value }, baseDir),
     });
   }
 
@@ -387,6 +546,7 @@ function doctor() {
       sau: sauInstalled,
       sau_bin: SAU_BIN,
       sau_help: sauHelp ? sauHelp.stdout.split("\n")[0] : null,
+      schedule_timezone: DEFAULT_TIMEZONE,
     },
     install_hint: [
       "git clone https://github.com/dreammis/social-auto-upload.git",
@@ -417,6 +577,7 @@ function plan(filePath, options = {}) {
       platform: item.platform,
       account: item.account,
       stable: item.stable,
+      schedule: item.schedule,
       sau: `${item.command.bin} ${item.command.args.map(shellQuote).join(" ")}`,
     })),
     warnings: result.warnings,

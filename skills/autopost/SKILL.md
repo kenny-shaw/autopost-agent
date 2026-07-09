@@ -29,9 +29,11 @@ autopost status <run-id>
 
 1. Ask for or locate a post manifest.
 2. Run `autopost doctor` if this is the first publishing task in the session.
-3. Run `autopost plan <post.yaml>` before any publishing attempt.
-4. Run `autopost check <post.yaml>` to verify local login state.
-5. Only run `autopost publish <post.yaml>` when the user explicitly asks to
+3. Use `schedule: auto` when the user asks for the best publish time and has no
+   explicit time preference.
+4. Run `autopost plan <post.yaml>` before any publishing attempt.
+5. Run `autopost check <post.yaml>` to verify local login state.
+6. Only run `autopost publish <post.yaml>` when the user explicitly asks to
    publish.
 
 ## Safety

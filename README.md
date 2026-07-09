@@ -18,6 +18,8 @@ Work in progress, but the local CLI now has the first real execution path:
 - `plan` validates a post manifest and prints the exact `sau` upload commands.
 - `publish` runs `sau <platform> upload-video` sequentially and prints JSON
   results.
+- `schedule: auto` chooses the next recommended publish window per platform and
+  passes it to `sau --schedule`.
 
 The first stable platform scope is Douyin, Xiaohongshu, Kuaishou, and Bilibili.
 Tencent/WeChat Channels and YouTube are treated as experimental.

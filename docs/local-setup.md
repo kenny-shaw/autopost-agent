@@ -67,3 +67,34 @@ npm run autopost -- publish examples/post.yaml
 
 `plan` never publishes. `publish` runs platform commands sequentially and prints
 a JSON result for each platform.
+
+## Auto Schedule
+
+Set `schedule: auto` in the post manifest to let AutoPost choose a concrete
+publish time for every platform:
+
+```yaml
+schedule: auto
+platforms:
+  douyin:
+    account: main
+  xiaohongshu:
+    account: main
+  bilibili:
+    account: main
+    tid: 249
+```
+
+AutoPost uses `Asia/Shanghai` by default and picks the next recommended creator
+posting window, with a small per-platform stagger so all uploads do not target
+the exact same minute. Override the timezone with:
+
+```bash
+AUTOPOST_TIMEZONE=Asia/Shanghai npm run autopost -- plan examples/post.yaml
+```
+
+Use an explicit manual schedule when you already know the time:
+
+```yaml
+schedule: "2026-07-10 20:00"
+```
