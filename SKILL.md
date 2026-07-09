@@ -20,6 +20,7 @@ to check whether `sau`, `uv`, and the expected Python runtime are available.
 autopost doctor
 autopost login <accounts-or-post.yaml>
 autopost schedule <post.yaml>
+autopost prepare <post.yaml>
 autopost plan <post.yaml>
 autopost check <accounts.yaml>
 autopost publish <post.yaml>
@@ -34,14 +35,16 @@ autopost status <run-id>
    explicit time preference.
 4. Run `autopost schedule <post.yaml>` when the user wants the best time
    analysis separately from the upload command plan.
-5. Before publishing an auto-scheduled post, run
+5. Prefer `autopost prepare <post.yaml> --write <scheduled-post.yaml>` to lock
+   auto schedules and inspect the resulting upload plan in one step.
+6. Before publishing an auto-scheduled post, run
    `autopost schedule <post.yaml> --write <scheduled-post.yaml>` and use the
    written manifest for `plan` and `publish`.
-6. Run `autopost plan <post.yaml>` before any publishing attempt.
-7. Run `autopost check <post.yaml>` to verify local login state.
-8. Only run `autopost publish <post.yaml>` when the user explicitly asks to
+7. Run `autopost plan <post.yaml>` before any publishing attempt.
+8. Run `autopost check <post.yaml>` to verify local login state.
+9. Only run `autopost publish <post.yaml>` when the user explicitly asks to
    publish.
-9. After publishing, preserve the returned `run_id` and use
+10. After publishing, preserve the returned `run_id` and use
    `autopost status <run-id>` if the user asks for the result again.
 
 ## Safety

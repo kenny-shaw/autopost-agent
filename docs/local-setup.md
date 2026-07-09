@@ -114,6 +114,12 @@ npm run autopost -- schedule examples/post.yaml --now "2026-07-09 19:00"
 Lock the recommended times into a new manifest before publishing:
 
 ```bash
+npm run autopost -- prepare examples/post.yaml --write /tmp/autopost-scheduled.yaml
+```
+
+Or use the lower-level schedule and plan commands:
+
+```bash
 npm run autopost -- schedule examples/post.yaml --write /tmp/autopost-scheduled.yaml
 npm run autopost -- plan /tmp/autopost-scheduled.yaml
 npm run autopost -- publish /tmp/autopost-scheduled.yaml

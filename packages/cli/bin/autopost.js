@@ -73,12 +73,13 @@ function usage(exitCode = 0) {
   printJson(
     {
       ok: exitCode === 0,
-      usage: "autopost <doctor|login|check|schedule|plan|publish|status> [file-or-run-id]",
+      usage: "autopost <doctor|login|check|schedule|prepare|plan|publish|status> [file-or-run-id]",
       commands: {
         doctor: "Check local runtime prerequisites.",
         login: "Run sau login for accounts in a manifest.",
         check: "Run sau check for accounts in a manifest.",
         schedule: "Analyze and print recommended publish times for a post manifest.",
+        prepare: "Lock auto schedules into a manifest and print the publish plan.",
         plan: "Validate a post manifest and print sau commands without publishing.",
         publish: "Run sau upload-video commands from a post manifest.",
         status: "Read a saved publish run log.",
@@ -628,16 +629,8 @@ function doctor() {
   }, issues.length === 0 ? 0 : 1);
 }
 
-function plan(filePath, options = {}) {
-  const { absolutePath, data } = readYamlFile(filePath);
-  const result = validatePostManifest(data, path.dirname(absolutePath), {
-    allowMissingFiles: options.flags?.has("allow-missing-files"),
-    ...scheduleOptionsFromCli(options),
-  });
-
-  printJson({
-    ok: result.errors.length === 0,
-    command: "plan",
+function planPayload(absolutePath, result) {
+  return {
     manifest: absolutePath,
     stable_platforms: [...STABLE_PLATFORMS],
     experimental_platforms: [...EXPERIMENTAL_PLATFORMS],
@@ -650,7 +643,66 @@ function plan(filePath, options = {}) {
     })),
     warnings: result.warnings,
     errors: result.errors,
+  };
+}
+
+function plan(filePath, options = {}) {
+  const { absolutePath, data } = readYamlFile(filePath);
+  const result = validatePostManifest(data, path.dirname(absolutePath), {
+    allowMissingFiles: options.flags?.has("allow-missing-files"),
+    ...scheduleOptionsFromCli(options),
+  });
+
+  printJson({
+    ok: result.errors.length === 0,
+    command: "plan",
+    ...planPayload(absolutePath, result),
   }, result.errors.length === 0 ? 0 : 1);
+}
+
+function prepare(filePath, options = {}) {
+  const { absolutePath, data } = readYamlFile(filePath);
+  const scheduleOptions = scheduleOptionsFromCli(options);
+  const scheduledPath = options.values?.write
+    ? path.resolve(path.dirname(absolutePath), options.values.write)
+    : path.resolve(process.cwd(), ".autopost/prepared", `${createRunId()}.yaml`);
+
+  const scheduleResult = validatePostManifest(data, path.dirname(absolutePath), {
+    allowMissingFiles: true,
+    forceAutoSchedule: true,
+    ...scheduleOptions,
+  });
+
+  if (scheduleResult.errors.length > 0) {
+    printJson({
+      ok: false,
+      command: "prepare",
+      manifest: absolutePath,
+      warnings: scheduleResult.warnings,
+      errors: scheduleResult.errors,
+    }, 1);
+    return;
+  }
+
+  const written = writeScheduledManifest(data, scheduleResult, scheduledPath, path.dirname(absolutePath));
+  const { data: scheduledData } = readYamlFile(written);
+  const planResult = validatePostManifest(scheduledData, path.dirname(written), {
+    allowMissingFiles: options.flags?.has("allow-missing-files"),
+    ...scheduleOptions,
+  });
+  const payload = planPayload(written, planResult);
+
+  printJson({
+    ok: planResult.errors.length === 0,
+    command: "prepare",
+    source_manifest: absolutePath,
+    scheduled_manifest: written,
+    next: {
+      check: `autopost check ${shellQuote(written)}`,
+      publish: `autopost publish ${shellQuote(written)}`,
+    },
+    ...payload,
+  }, planResult.errors.length === 0 ? 0 : 1);
 }
 
 function schedule(filePath, options = {}) {
@@ -928,6 +980,8 @@ try {
     plan(argument, args);
   } else if (command === "schedule") {
     schedule(argument, args);
+  } else if (command === "prepare") {
+    prepare(argument, args);
   } else if (command === "check") {
     check(argument);
   } else if (command === "login") {

@@ -16,6 +16,7 @@ Work in progress, but the local CLI now has the first real execution path:
 - `login` calls `sau <platform> login`.
 - `check` calls `sau <platform> check`.
 - `schedule` analyzes a post manifest and prints recommended publish times.
+- `prepare` locks recommended schedules and prints the publish plan in one step.
 - `plan` validates a post manifest and prints the exact `sau` upload commands.
 - `publish` runs `sau <platform> upload-video` sequentially and prints JSON
   results.
@@ -33,6 +34,7 @@ npm install
 npm run autopost -- doctor
 npm run autopost -- schedule examples/post.yaml
 npm run autopost -- schedule examples/post.yaml --write /tmp/autopost-scheduled.yaml
+npm run autopost -- prepare examples/post.yaml --write /tmp/autopost-scheduled.yaml --allow-missing-files
 npm run autopost -- plan examples/post.yaml --allow-missing-files
 ```
 
@@ -40,6 +42,7 @@ Future public usage:
 
 ```bash
 npx autopost plan post.yaml
+npx autopost prepare post.yaml --write scheduled-post.yaml
 npx autopost check accounts.yaml
 npx autopost publish post.yaml
 npx autopost status <run-id>

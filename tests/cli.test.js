@@ -68,6 +68,25 @@ assert.equal(planByPlatform.douyin.schedule.source, "manual");
 assert.match(planByPlatform.douyin.sau, /--schedule '2026-07-09 19:30'/);
 assert.match(planByPlatform.bilibili.sau, /--tid 249/);
 
+const preparedManifestPath = path.join(tempDir, "prepared.yaml");
+const prepare = run([
+  "prepare",
+  postManifest,
+  "--now",
+  "2026-07-09 19:00",
+  "--write",
+  preparedManifestPath,
+  "--allow-missing-files",
+]);
+assert.equal(prepare.status, 0);
+assert.equal(prepare.json.ok, true);
+assert.equal(prepare.json.scheduled_manifest, preparedManifestPath);
+assert.match(prepare.json.next.check, /autopost check /);
+assert.match(prepare.json.next.publish, /autopost publish /);
+const prepareByPlatform = Object.fromEntries(prepare.json.plan.map((item) => [item.platform, item]));
+assert.equal(prepareByPlatform.douyin.schedule.value, "2026-07-09 19:30");
+assert.equal(prepareByPlatform.douyin.schedule.source, "manual");
+
 const runDir = path.join(tempDir, "runs");
 const publish = run(["publish", scheduledManifestPath], {
   env: {
