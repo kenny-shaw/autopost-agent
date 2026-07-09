@@ -19,6 +19,7 @@ to check whether `sau`, `uv`, and the expected Python runtime are available.
 ```bash
 autopost doctor
 autopost login <accounts-or-post.yaml>
+autopost schedule <post.yaml>
 autopost plan <post.yaml>
 autopost check <accounts.yaml>
 autopost publish <post.yaml>
@@ -31,9 +32,11 @@ autopost status <run-id>
 2. Run `autopost doctor` if this is the first publishing task in the session.
 3. Use `schedule: auto` when the user asks for the best publish time and has no
    explicit time preference.
-4. Run `autopost plan <post.yaml>` before any publishing attempt.
-5. Run `autopost check <post.yaml>` to verify local login state.
-6. Only run `autopost publish <post.yaml>` when the user explicitly asks to
+4. Run `autopost schedule <post.yaml>` when the user wants the best time
+   analysis separately from the upload command plan.
+5. Run `autopost plan <post.yaml>` before any publishing attempt.
+6. Run `autopost check <post.yaml>` to verify local login state.
+7. Only run `autopost publish <post.yaml>` when the user explicitly asks to
    publish.
 
 ## Safety

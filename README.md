@@ -15,6 +15,7 @@ Work in progress, but the local CLI now has the first real execution path:
 - `doctor` checks local prerequisites.
 - `login` calls `sau <platform> login`.
 - `check` calls `sau <platform> check`.
+- `schedule` analyzes a post manifest and prints recommended publish times.
 - `plan` validates a post manifest and prints the exact `sau` upload commands.
 - `publish` runs `sau <platform> upload-video` sequentially and prints JSON
   results.
@@ -29,6 +30,7 @@ Tencent/WeChat Channels and YouTube are treated as experimental.
 ```bash
 npm install
 npm run autopost -- doctor
+npm run autopost -- schedule examples/post.yaml
 npm run autopost -- plan examples/post.yaml --allow-missing-files
 ```
 

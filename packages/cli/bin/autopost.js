@@ -72,11 +72,12 @@ function usage(exitCode = 0) {
   printJson(
     {
       ok: exitCode === 0,
-      usage: "autopost <doctor|login|check|plan|publish|status> [file-or-run-id]",
+      usage: "autopost <doctor|login|check|schedule|plan|publish|status> [file-or-run-id]",
       commands: {
         doctor: "Check local runtime prerequisites.",
         login: "Run sau login for accounts in a manifest.",
         check: "Run sau check for accounts in a manifest.",
+        schedule: "Analyze and print recommended publish times for a post manifest.",
         plan: "Validate a post manifest and print sau commands without publishing.",
         publish: "Run sau upload-video commands from a post manifest.",
         status: "Placeholder for future run logs.",
@@ -288,10 +289,30 @@ function isAutoSchedule(value) {
   return value === true || String(value || "").toLowerCase() === "auto";
 }
 
+function parseNowOption(value) {
+  if (!value) return new Date();
+  const normalized = String(value).includes("T")
+    ? String(value)
+    : `${String(value).replace(" ", "T")}:00`;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid --now value: ${value}`);
+  }
+  return parsed;
+}
+
+function scheduleOptionsFromCli(options = {}) {
+  return {
+    timeZone: options.values?.timezone || options.values?.time_zone || DEFAULT_TIMEZONE,
+    now: parseNowOption(options.values?.now),
+    minLeadMinutes: options.values?.["min-lead-minutes"] || options.values?.minLeadMinutes,
+  };
+}
+
 function recommendSchedule(platform, options = {}) {
   const rule = PLATFORM_SCHEDULE_RULES[platform] || PLATFORM_SCHEDULE_RULES.douyin;
   const timeZone = options.timeZone || DEFAULT_TIMEZONE;
-  const now = zonedParts(new Date(), timeZone);
+  const now = zonedParts(options.now || new Date(), timeZone);
   const earliest = addMinutesLocal(now, Number(options.minLeadMinutes || 30));
 
   for (let dayOffset = 0; dayOffset < 14; dayOffset += 1) {
@@ -374,7 +395,8 @@ function validatePostManifest(manifest, baseDir, options = {}) {
     }
 
     const merged = mergePlatform(manifest, config);
-    const schedule = resolveSchedule(platform, merged.schedule, options);
+    const rawSchedule = options.forceAutoSchedule && !merged.schedule ? "auto" : merged.schedule;
+    const schedule = resolveSchedule(platform, rawSchedule, options);
     if (!merged.account) errors.push(`Missing account for platform: ${platform}`);
     if (!merged.title) errors.push(`Missing title for platform: ${platform}`);
     if (platform === "bilibili" && !merged.tid) {
@@ -565,6 +587,7 @@ function plan(filePath, options = {}) {
   const { absolutePath, data } = readYamlFile(filePath);
   const result = validatePostManifest(data, path.dirname(absolutePath), {
     allowMissingFiles: options.flags?.has("allow-missing-files"),
+    ...scheduleOptionsFromCli(options),
   });
 
   printJson({
@@ -579,6 +602,34 @@ function plan(filePath, options = {}) {
       stable: item.stable,
       schedule: item.schedule,
       sau: `${item.command.bin} ${item.command.args.map(shellQuote).join(" ")}`,
+    })),
+    warnings: result.warnings,
+    errors: result.errors,
+  }, result.errors.length === 0 ? 0 : 1);
+}
+
+function schedule(filePath, options = {}) {
+  const { absolutePath, data } = readYamlFile(filePath);
+  const result = validatePostManifest(data, path.dirname(absolutePath), {
+    allowMissingFiles: true,
+    forceAutoSchedule: true,
+    ...scheduleOptionsFromCli(options),
+  });
+
+  printJson({
+    ok: result.errors.length === 0,
+    command: "schedule",
+    manifest: absolutePath,
+    time_zone: scheduleOptionsFromCli(options).timeZone,
+    recommendations: result.plan.map((item) => ({
+      platform: item.platform,
+      account: item.account,
+      stable: item.stable,
+      schedule: item.schedule || {
+        value: null,
+        source: "none",
+        reason: "No schedule was requested in the manifest.",
+      },
     })),
     warnings: result.warnings,
     errors: result.errors,
@@ -732,6 +783,8 @@ try {
     usage(1);
   } else if (command === "plan") {
     plan(argument, args);
+  } else if (command === "schedule") {
+    schedule(argument, args);
   } else if (command === "check") {
     check(argument);
   } else if (command === "login") {

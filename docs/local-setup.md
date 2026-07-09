@@ -90,7 +90,14 @@ posting window, with a small per-platform stagger so all uploads do not target
 the exact same minute. Override the timezone with:
 
 ```bash
+AUTOPOST_TIMEZONE=Asia/Shanghai npm run autopost -- schedule examples/post.yaml
 AUTOPOST_TIMEZONE=Asia/Shanghai npm run autopost -- plan examples/post.yaml
+```
+
+For deterministic checks, pass `--now`:
+
+```bash
+npm run autopost -- schedule examples/post.yaml --now "2026-07-09 19:00"
 ```
 
 Use an explicit manual schedule when you already know the time:
