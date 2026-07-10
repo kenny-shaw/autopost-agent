@@ -1,6 +1,6 @@
 ---
 name: autopost
-version: 0.2.1
+version: 0.2.2
 description: Publish local videos from Codex and AI agents to Douyin, Xiaohongshu, Kuaishou, and Bilibili with explicit confirmation and local account sessions.
 requires:
   binaries:

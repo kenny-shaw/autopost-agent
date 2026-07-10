@@ -11,7 +11,7 @@ const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "autopost-agent-test-"));
 const token = "test-runner-token";
 const plan = { plan_id: "plan-1", plan_hash: "hash-1", deliveries: [{ platform: "douyin", account_alias: "main" }] };
 const requests = [];
-let minimumCliVersion = "0.2.1";
+let minimumCliVersion = "0.2.2";
 
 const server = http.createServer(async (request, response) => {
   let body = "";
@@ -24,7 +24,7 @@ const server = http.createServer(async (request, response) => {
     ok: true,
     health: {
       ok: true,
-      compatibility: { api_version: "1", runner_version: "0.2.1", runtime_version: "0.2.1", minimum_cli_version: minimumCliVersion },
+      compatibility: { api_version: "1", runner_version: "0.2.2", runtime_version: "0.2.2", minimum_cli_version: minimumCliVersion },
     },
   }));
   if (request.headers.authorization !== `Bearer ${token}`) {
@@ -71,7 +71,7 @@ try {
   const doctor = await run(["doctor"]);
   assert.equal(doctor.status, 0);
   assert.equal(doctor.json.runner.ok, true);
-  assert.equal(doctor.json.cli_version, "0.2.1");
+  assert.equal(doctor.json.cli_version, "0.2.2");
   assert.equal(doctor.json.config.token, "<redacted>");
 
   const capabilities = await run(["capabilities"]);
@@ -116,7 +116,7 @@ try {
   const incompatible = await run(["doctor"]);
   assert.equal(incompatible.status, 1);
   assert.match(incompatible.json.issues[0], /requires CLI 9\.0\.0/);
-  minimumCliVersion = "0.2.1";
+  minimumCliVersion = "0.2.2";
 
   assert.ok(requests.filter((item) => item.url !== "/v1/health").every((item) => item.authorization === `Bearer ${token}`));
   console.log("agent CLI contract tests passed");

@@ -13,7 +13,7 @@ import { installRuntime } from "../src/runtime-installer.js";
 const CLI_FILE = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(CLI_FILE), "../../..");
 const BOOLEAN_OPTIONS = new Set(["headed", "headless", "new-run", "attempts", "force"]);
-const CLI_VERSION = "0.2.1";
+const CLI_VERSION = "0.2.2";
 const API_VERSION = "1";
 let runnerCompatibilityChecked = false;
 
