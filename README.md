@@ -1,52 +1,88 @@
 # AutoPost Agent
 
-Agent-facing CLI and skill package for AutoPost.
-
-This repository is the public surface for agents such as Codex, Claude Code,
-and OpenClaw. It should stay lightweight: command contracts, examples, skill
-instructions, and a CLI wrapper. Product internals, paid logic, platform-private
-implementation details, and account custody logic belong in the private
-`autopost` repository.
-
-## Status
-
-Work in progress, but the local CLI now has the first real execution path:
-
-- `doctor` checks local prerequisites.
-- `login` calls `sau <platform> login`.
-- `check` calls `sau <platform> check`.
-- `schedule` analyzes a post manifest and prints recommended publish times.
-- `prepare` locks recommended schedules and prints the publish plan in one step.
-- `plan` validates a post manifest and prints the exact `sau` upload commands.
-- `publish` runs `sau <platform> upload-video` sequentially and prints JSON
-  results.
-- `status` reads saved publish run logs from `.autopost/runs`.
-- `schedule: auto` chooses the next recommended publish window per platform and
-  passes it to `sau --schedule`.
-
-The first stable platform scope is Douyin, Xiaohongshu, Kuaishou, and Bilibili.
-Tencent/WeChat Channels and YouTube are treated as experimental.
+Public CLI and agent Skill for the local-first AutoPost publishing product.
 
 ## Quick Start
 
+Install the Skill from GitHub:
+
+```bash
+npx skills add kenny-shaw/autopost-agent --skill autopost
+```
+
+The Skill uses the latest public CLI and performs an idempotent local setup:
+
+```bash
+npx --yes @kennyshaw/autopost@latest setup
+```
+
+On a new Apple Silicon Mac, setup downloads the compatible local Runtime,
+verifies its SHA-256 checksum, installs pinned SAU/Python dependencies and the
+managed Chromium browser, and starts the local Runner. Platform credentials and
+video files remain on the user's machine.
+
+The CLI is intentionally thin. It reads manifests, talks to the local AutoPost
+Runner, and prints stable JSON. Platform browser logic, credentials, plans,
+idempotency, run state, and retries belong to the private `autopost` product
+repository. The Runner uses the pinned `sau` CLI from the maintained public
+`autopost-sau` fork as its browser execution engine.
+
+## Supported Video Platforms
+
+- Douyin
+- Xiaohongshu
+- Kuaishou
+- Bilibili
+
+All four have passed controlled real-account submission tests and remain
+experimental while post-publication confirmation is being hardened.
+
+## Development Setup
+
 ```bash
 npm install
+npm link
+npm run autopost -- setup \
+  --runner-entry ../autopost/apps/runner/src/main.mjs \
+  --sau-bin ../autopost-sau/.venv/bin/sau
 npm run autopost -- doctor
-npm run autopost -- schedule examples/post.yaml
-npm run autopost -- schedule examples/post.yaml --write /tmp/autopost-scheduled.yaml
-npm run autopost -- prepare examples/post.yaml --write /tmp/autopost-scheduled.yaml --allow-missing-files
-npm run autopost -- plan examples/post.yaml --allow-missing-files
 ```
 
-Future public usage:
+The Runner configuration, token, SQLite database, logs, and evidence directory
+live under `~/.autopost` by default. Override the location with `AUTOPOST_HOME`
+for isolated testing.
+
+## Account Workflow
 
 ```bash
-npx autopost plan post.yaml
-npx autopost prepare post.yaml --write scheduled-post.yaml
-npx autopost check accounts.yaml
-npx autopost publish post.yaml
-npx autopost status <run-id>
+npm run autopost -- account login douyin --name main
+npm run autopost -- account check douyin --name main
+npm run autopost -- account list
 ```
 
-See [docs/local-setup.md](docs/local-setup.md) for the `social-auto-upload`
-setup and local login flow.
+Douyin, Xiaohongshu, and Kuaishou open a visible Chromium window by default.
+Bilibili runs in a local pseudo-terminal and streams its terminal QR code
+through the Runner to the CLI.
+
+## Safe Publishing Workflow
+
+```bash
+npm run autopost -- post prepare examples/post.yaml
+autopost post publish <plan-id> --confirm <plan-hash> --headed
+autopost run get <run-id> --attempts
+```
+
+`prepare` never publishes. `publish` requires the exact immutable plan hash.
+The same plan is idempotent by default. Only deliveries in a safely retryable
+state can be retried:
+
+```bash
+autopost run retry <run-id> --headed
+```
+
+`confirmation_unknown` is never retried automatically.
+
+Start with the single-platform manifests in `examples/douyin.yaml`,
+`examples/xiaohongshu.yaml`, `examples/kuaishou.yaml`, and
+`examples/bilibili.yaml`. See [docs/local-setup.md](docs/local-setup.md) for the
+complete platform-by-platform test sequence.

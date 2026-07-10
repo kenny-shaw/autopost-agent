@@ -1,135 +1,129 @@
-# Local Setup
+# Local Setup and Platform Testing
 
-AutoPost Agent wraps the `sau` CLI from `social-auto-upload`. The first usable
-local workflow is:
+## Prerequisites
 
-1. Install `social-auto-upload`.
-2. Log in to each platform locally.
-3. Run `autopost plan`.
-4. Run `autopost check`.
-5. Run `autopost publish`.
+- Node.js 20
+- `uv`
+- Python 3.10, 3.11, or 3.12
+- Patchright Chromium installed for `social-auto-upload`
+- the `autopost`, `autopost-agent`, and clean `autopost-sau` repositories as
+  sibling directories during development
 
-## Install social-auto-upload
-
-`social-auto-upload` currently installs from GitHub source. It requires Python
-`>=3.10,<3.13`.
+Until the fork has its own packaged runtime, install its unmodified source:
 
 ```bash
-git clone https://github.com/dreammis/social-auto-upload.git
-cd social-auto-upload
-uv venv
-source .venv/bin/activate
-uv pip install -e .
-PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright patchright install chromium
+cd ../autopost-sau
+uv sync --frozen
+PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright \
+  .venv/bin/patchright install chromium
 cp conf.example.py conf.py
 ```
 
-Verify:
+Configure and start AutoPost:
 
 ```bash
-sau --help
-sau douyin --help
-sau xiaohongshu --help
-sau kuaishou --help
-sau bilibili --help
+cd ../autopost-agent
+npm install
+npm link
+npm run autopost -- setup \
+  --runner-entry ../autopost/apps/runner/src/main.mjs \
+  --sau-bin ../autopost-sau/.venv/bin/sau
+npm run autopost -- doctor
 ```
 
-If `sau` is not on `PATH`, point AutoPost at it:
+## Test Accounts First
+
+Use non-critical test accounts and unique aliases:
 
 ```bash
-AUTOPOST_SAU_BIN=/absolute/path/to/sau npm run autopost -- doctor
+autopost account login douyin --name test-dy
+autopost account login xiaohongshu --name test-xhs
+autopost account login kuaishou --name test-ks
+autopost account login bilibili --name test-bili
+
+autopost account check douyin --name test-dy
+autopost account check xiaohongshu --name test-xhs
+autopost account check kuaishou --name test-ks
+autopost account check bilibili --name test-bili
 ```
 
-## Login
+For Douyin, Xiaohongshu, and Kuaishou, complete login in the visible browser.
+For Bilibili, scan the terminal QR code streamed to the CLI.
+The Runner selects QR login automatically and the CLI opens the generated image
+with the operating system viewer.
 
-Edit `examples/accounts.yaml`, then run:
+## Prepare One Platform at a Time
+
+Four ready-to-edit single-platform manifests are included. In the target file,
+set `media.video` to your video, set the account alias to the alias used above,
+and choose a unique title. A cover is optional. Confirm Bilibili's
+`category_id` is appropriate for the video.
 
 ```bash
-npm run autopost -- login examples/accounts.yaml --headed
-npm run autopost -- check examples/accounts.yaml
+autopost post prepare examples/douyin.yaml
+autopost post prepare examples/xiaohongshu.yaml
+autopost post prepare examples/kuaishou.yaml
+autopost post prepare examples/bilibili.yaml
 ```
 
-Bilibili login is best run in a real local terminal:
+Review these fields from the JSON response:
+
+- `plan_id`
+- `plan_hash`
+- `media_sha256`
+- platform and account
+- resolved title, description, tags, cover, and schedule
+- selected adapter
+
+## Publish With a Visible Browser
+
+For the first real attempt on each browser platform, use `--headed`:
 
 ```bash
-sau bilibili login --account main
+autopost post publish <plan-id> --confirm <plan-hash> --headed
 ```
 
-## Publish
+Do not manually click Publish unless the CLI explicitly reports that user
+intervention is required. If the command fails after submission, inspect the
+creator dashboard before retrying.
 
-Edit `examples/post.yaml`, then run:
+Test and inspect one platform completely before moving to the next. Do not put
+all four into one real run until all four single-platform checks pass.
+
+## Inspect and Retry
 
 ```bash
-npm run autopost -- plan examples/post.yaml
-npm run autopost -- check examples/post.yaml
-npm run autopost -- publish examples/post.yaml
+autopost run get <run-id> --attempts
+autopost run list
+autopost run retry <run-id> --headed
 ```
 
-`plan` never publishes. `publish` runs platform commands sequentially and prints
-a JSON result for each platform. Publish runs are saved under `.autopost/runs`
-by default:
+Only `failed` and `login_required` deliveries are retried. A timeout during the
+upload command is represented as `confirmation_unknown` and requires manual
+platform verification.
 
-```bash
-npm run autopost -- status <run-id>
-```
+## Scheduling
 
-Override the log directory when needed:
-
-```bash
-AUTOPOST_RUN_DIR=/tmp/autopost-runs npm run autopost -- publish /tmp/autopost-scheduled.yaml
-```
-
-## Auto Schedule
-
-Set `schedule: auto` in the post manifest to let AutoPost choose a concrete
-publish time for every platform:
+Use an ISO 8601 instant and an IANA timezone:
 
 ```yaml
-schedule: auto
-platforms:
-  douyin:
-    account: main
-  xiaohongshu:
-    account: main
-  bilibili:
-    account: main
-    tid: 249
+publish:
+  mode: scheduled
+  scheduled_at: "2026-07-12T12:30:00+08:00"
+  timezone: "Asia/Shanghai"
 ```
 
-AutoPost uses `Asia/Shanghai` by default and picks the next recommended creator
-posting window, with a small per-platform stagger so all uploads do not target
-the exact same minute. Override the timezone with:
+The Runner converts it into the wall-clock format required by SAU.
+
+## Stop or Restart the Runner
 
 ```bash
-AUTOPOST_TIMEZONE=Asia/Shanghai npm run autopost -- schedule examples/post.yaml
-AUTOPOST_TIMEZONE=Asia/Shanghai npm run autopost -- plan examples/post.yaml
+autopost runner status
+autopost runner stop
+autopost runner start
 ```
 
-For deterministic checks, pass `--now`:
-
-```bash
-npm run autopost -- schedule examples/post.yaml --now "2026-07-09 19:00"
-```
-
-Lock the recommended times into a new manifest before publishing:
-
-```bash
-npm run autopost -- prepare examples/post.yaml --write /tmp/autopost-scheduled.yaml
-```
-
-Or use the lower-level schedule and plan commands:
-
-```bash
-npm run autopost -- schedule examples/post.yaml --write /tmp/autopost-scheduled.yaml
-npm run autopost -- plan /tmp/autopost-scheduled.yaml
-npm run autopost -- publish /tmp/autopost-scheduled.yaml
-```
-
-This converts a shared `schedule: auto` into per-platform concrete schedules,
-so later `plan` and `publish` calls use the same times.
-
-Use an explicit manual schedule when you already know the time:
-
-```yaml
-schedule: "2026-07-10 20:00"
-```
+Diagnostics are stored in `~/.autopost/logs`; new installations store structured
+state in `~/.autopost/data/autopost.db`. Existing installations retain the path
+already recorded in `runner.json`. Do not share raw credential files or
+unreviewed logs.

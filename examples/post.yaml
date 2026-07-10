@@ -1,18 +1,25 @@
-title: "Demo title"
-description: "Demo description"
-tags:
-  - AI
-  - automation
-video: "./videos/demo.mp4"
-cover: "./covers/demo.jpg"
-schedule: auto
+schema_version: "1"
+post_id: "demo-post"
+media:
+  video: "./videos/demo.mp4"
+defaults:
+  title: "Demo title"
+  description: "Demo description"
+  tags:
+    - AI
+    - automation
+publish:
+  mode: "now"
 platforms:
   douyin:
     account: "main"
+    cover: "./covers/demo.jpg"
   xiaohongshu:
     account: "main"
+    cover: "./covers/demo.jpg"
   kuaishou:
     account: "main"
+    cover: "./covers/demo.jpg"
   bilibili:
     account: "main"
-    tid: 249
+    category_id: 249

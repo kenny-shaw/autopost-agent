@@ -1,0 +1,44 @@
+{
+  "name": "@kennyshaw/autopost",
+  "version": "0.2.1",
+  "description": "Agent-friendly CLI for local multi-platform video publishing with AutoPost",
+  "type": "module",
+  "bin": {
+    "autopost": "bin/autopost.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "autopost",
+    "ai-agent",
+    "agent-skill",
+    "video-publishing",
+    "social-media-automation",
+    "douyin",
+    "xiaohongshu",
+    "kuaishou",
+    "bilibili",
+    "codex",
+    "cli"
+  ],
+  "author": "kennyshaw",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kenny-shaw/autopost-agent.git",
+    "directory": "packages/cli"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

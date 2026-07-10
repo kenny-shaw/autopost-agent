@@ -1,0 +1,13 @@
+schema_version: "1"
+post_id: "kuaishou-video"
+media:
+  video: "./video.mp4"
+defaults:
+  title: "Video title"
+  description: ""
+  tags: []
+publish:
+  mode: "now"
+platforms:
+  kuaishou:
+    account: "main"
