@@ -4,6 +4,9 @@
   "private": true,
   "description": "Agent-facing CLI and skill package for AutoPost.",
   "type": "module",
+  "bin": {
+    "autopost": "packages/cli/bin/autopost.js"
+  },
   "workspaces": [
     "packages/*"
   ],
@@ -12,5 +15,8 @@
     "check": "node packages/cli/bin/autopost.js doctor",
     "test": "node tests/cli.test.js && bash scripts/check-skill-sync.sh"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "yaml": "^2.8.0"
+  }
 }

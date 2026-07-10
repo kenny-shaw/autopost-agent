@@ -17,7 +17,7 @@ on the user's computer. Never invoke `sau` directly. Use the public CLI as the
 only interface:
 
 ```bash
-npx --yes @kennyshaw/autopost@latest <command>
+npx --yes github:kenny-shaw/autopost-agent#main <command>
 ```
 
 ## First Use And Updates
@@ -25,7 +25,7 @@ npx --yes @kennyshaw/autopost@latest <command>
 At the start of the first AutoPost task in a session, run:
 
 ```bash
-npx --yes @kennyshaw/autopost@latest setup
+npx --yes github:kenny-shaw/autopost-agent#main setup
 ```
 
 This is idempotent. It checks the stable release manifest, installs or updates
@@ -44,7 +44,7 @@ Do not replace the AutoPost installer with direct SAU installation.
 Check health when diagnosing an existing installation:
 
 ```bash
-npx --yes @kennyshaw/autopost@latest doctor
+npx --yes github:kenny-shaw/autopost-agent#main doctor
 ```
 
 ## Accounts
@@ -52,12 +52,12 @@ npx --yes @kennyshaw/autopost@latest doctor
 Account names are local aliases, not platform usernames or passwords.
 
 ```bash
-npx --yes @kennyshaw/autopost@latest account list
-npx --yes @kennyshaw/autopost@latest account check douyin --name main
-npx --yes @kennyshaw/autopost@latest account login douyin --name main
-npx --yes @kennyshaw/autopost@latest account login xiaohongshu --name main
-npx --yes @kennyshaw/autopost@latest account login kuaishou --name main
-npx --yes @kennyshaw/autopost@latest account login bilibili --name main
+npx --yes github:kenny-shaw/autopost-agent#main account list
+npx --yes github:kenny-shaw/autopost-agent#main account check douyin --name main
+npx --yes github:kenny-shaw/autopost-agent#main account login douyin --name main
+npx --yes github:kenny-shaw/autopost-agent#main account login xiaohongshu --name main
+npx --yes github:kenny-shaw/autopost-agent#main account login kuaishou --name main
+npx --yes github:kenny-shaw/autopost-agent#main account login bilibili --name main
 ```
 
 Ask the user to complete QR-code, browser, SMS, or CAPTCHA interaction when the
@@ -106,7 +106,7 @@ an ISO 8601 `scheduled_at` and an IANA `timezone`.
 5. Prepare it:
 
 ```bash
-npx --yes @kennyshaw/autopost@latest post prepare /absolute/path/to/post.yaml
+npx --yes github:kenny-shaw/autopost-agent#main post prepare /absolute/path/to/post.yaml
 ```
 
 6. Present the resolved video, platforms, account aliases, title, description,
@@ -115,7 +115,7 @@ npx --yes @kennyshaw/autopost@latest post prepare /absolute/path/to/post.yaml
 8. Publish only after confirmation:
 
 ```bash
-npx --yes @kennyshaw/autopost@latest post publish <plan-id> --confirm <plan-hash> --headed
+npx --yes github:kenny-shaw/autopost-agent#main post publish <plan-id> --confirm <plan-hash> --headed
 ```
 
 9. Preserve the returned `run_id` and report every delivery separately.
@@ -130,14 +130,14 @@ hash.
 Inspect a run and its sanitized attempts with:
 
 ```bash
-npx --yes @kennyshaw/autopost@latest run get <run-id> --attempts
-npx --yes @kennyshaw/autopost@latest run list
+npx --yes github:kenny-shaw/autopost-agent#main run get <run-id> --attempts
+npx --yes github:kenny-shaw/autopost-agent#main run list
 ```
 
 Retry only when the Runner permits it:
 
 ```bash
-npx --yes @kennyshaw/autopost@latest run retry <run-id> --headed
+npx --yes github:kenny-shaw/autopost-agent#main run retry <run-id> --headed
 ```
 
 Interpret states precisely:

@@ -13,8 +13,11 @@ npx skills add kenny-shaw/autopost-agent --skill autopost
 The Skill uses the latest public CLI and performs an idempotent local setup:
 
 ```bash
-npx --yes @kennyshaw/autopost@latest setup
+npx --yes github:kenny-shaw/autopost-agent#main setup
 ```
+
+The scoped npm package will provide the shorter equivalent command after npm
+publisher access is configured.
 
 On a new Apple Silicon Mac, setup downloads the compatible local Runtime,
 verifies its SHA-256 checksum, installs pinned SAU/Python dependencies and the
