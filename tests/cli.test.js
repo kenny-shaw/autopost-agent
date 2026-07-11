@@ -71,8 +71,12 @@ try {
   const doctor = await run(["doctor"]);
   assert.equal(doctor.status, 0);
   assert.equal(doctor.json.runner.ok, true);
-  assert.equal(doctor.json.cli_version, "0.2.2");
+  assert.equal(doctor.json.cli_version, "0.2.3");
   assert.equal(doctor.json.config.token, "<redacted>");
+
+  const help = await run(["--help"]);
+  assert.equal(help.status, 0);
+  assert.match(help.json.usage, /autopost/);
 
   const capabilities = await run(["capabilities"]);
   assert.deepEqual(capabilities.json.platforms, ["douyin", "xiaohongshu", "kuaishou", "bilibili"]);
