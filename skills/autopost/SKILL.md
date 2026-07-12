@@ -2,7 +2,7 @@
 name: autopost
 description: Publish local videos from Codex and AI agents to Douyin, Xiaohongshu, Kuaishou, and Bilibili with explicit confirmation and local account sessions.
 metadata:
-  version: "0.2.3"
+  version: "0.2.4"
   requires: npx
 ---
 

@@ -13,8 +13,9 @@ import { installRuntime } from "../src/runtime-installer.js";
 const CLI_FILE = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(CLI_FILE), "../../..");
 const BOOLEAN_OPTIONS = new Set(["headed", "headless", "new-run", "attempts", "force", "help"]);
-const CLI_VERSION = "0.2.3";
+const CLI_VERSION = "0.2.4";
 const API_VERSION = "1";
+const MIN_RUNNER_VERSION = "0.2.2";
 let runnerCompatibilityChecked = false;
 
 function compareVersions(left, right) {
@@ -32,6 +33,9 @@ function runnerCompatibility(payload) {
   if (!compatibility) return { ok: false, issue: "Runner does not expose compatibility metadata. Update AutoPost Runtime." };
   if (compatibility.api_version !== API_VERSION) {
     return { ok: false, issue: `CLI API ${API_VERSION} is incompatible with Runner API ${compatibility.api_version}. Update AutoPost CLI and Runtime.` };
+  }
+  if (compareVersions(compatibility.runner_version, MIN_RUNNER_VERSION) < 0) {
+    return { ok: false, issue: `Runner ${compatibility.runner_version} is older than required ${MIN_RUNNER_VERSION}. Update AutoPost Runtime.` };
   }
   if (compareVersions(CLI_VERSION, compatibility.minimum_cli_version) < 0) {
     return { ok: false, issue: `Runner requires CLI ${compatibility.minimum_cli_version} or newer; current CLI is ${CLI_VERSION}.` };
@@ -191,7 +195,14 @@ async function ensureRunnerCompatibility(config = readConfig()) {
   const payload = await health(config);
   if (!payload) throw new Error("Runner is not running. Run `autopost runner start`.");
   const result = runnerCompatibility(payload);
-  if (!result.ok) throw new Error(result.issue);
+  if (!result.ok) {
+    process.stderr.write(`[autopost] ${result.issue}\n[autopost] Restarting with the latest configured Runtime.\n`);
+    try { await stopRunner(); } catch {}
+    await setup({ force: true });
+    const updated = await health(config);
+    const updatedResult = runnerCompatibility(updated);
+    if (!updatedResult.ok) throw new Error(updatedResult.issue);
+  }
   runnerCompatibilityChecked = true;
 }
 
